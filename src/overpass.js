@@ -39,19 +39,38 @@ export const CATEGORIES = [
   { key: 'services', label: 'Serviços', selectors: ['["craft"]', '["office"]'] },
 ];
 
-// Geocodifica um texto (cidade, bairro) -> { lat, lon, label }.
+// Geocoder 1: Nominatim (oficial do OSM).
+async function geocodeNominatim(query) {
+  const url = `${NOMINATIM}?format=json&limit=1&q=${encodeURIComponent(query)}`;
+  const r = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 9000);
+  if (!r.ok) throw new Error('nominatim ' + r.status);
+  const d = await r.json();
+  if (!d || !d[0]) throw new Error('nominatim vazio');
+  return { lat: Number(d[0].lat), lon: Number(d[0].lon), label: d[0].display_name };
+}
+
+// Geocoder 2: Photon (Komoot) — costuma ser mais rápido, também grátis e sem chave.
+async function geocodePhoton(query) {
+  const url = `https://photon.komoot.io/api/?limit=1&q=${encodeURIComponent(query)}`;
+  const r = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 9000);
+  if (!r.ok) throw new Error('photon ' + r.status);
+  const d = await r.json();
+  const f = d && d.features && d.features[0];
+  if (!f || !f.geometry) throw new Error('photon vazio');
+  const [lon, lat] = f.geometry.coordinates;
+  const p = f.properties || {};
+  const label = [p.name, p.city, p.state, p.country].filter(Boolean).join(', ');
+  return { lat, lon, label };
+}
+
+// Geocodifica um texto (cidade, bairro) usando os dois provedores em paralelo
+// e ficando com o primeiro que responder. -> { lat, lon, label }.
 export async function geocode(query) {
-  const url = `${NOMINATIM}?format=json&limit=1&addressdetails=0&q=${encodeURIComponent(query)}`;
-  const r = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 12000);
-  if (!r.ok) throw new Error('Falha no geocoding (Nominatim).');
-  const data = await r.json();
-  if (!data || data.length === 0) throw new Error('Local não encontrado.');
-  const first = data[0];
-  return {
-    lat: Number(first.lat),
-    lon: Number(first.lon),
-    label: first.display_name,
-  };
+  try {
+    return await Promise.any([geocodePhoton(query), geocodeNominatim(query)]);
+  } catch {
+    throw new Error('Não encontrei esse local. Tente no formato "Bairro, Cidade" (ex.: Copacabana, Rio de Janeiro).');
+  }
 }
 
 // Monta a query Overpass QL para um centro + raio + categorias.
@@ -74,41 +93,39 @@ export function buildQuery({ lat, lon, radius, categoryKeys }) {
   return `[out:json][timeout:25];\n(\n${body}\n);\nout center 250;`;
 }
 
-// Executa a query tentando os espelhos em sequência (com timeout por espelho).
+// Tenta um espelho; devolve os elementos ou lança erro (marcando "ocupado").
+async function attemptMirror(url, body) {
+  const r = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    },
+    18000
+  );
+  if (r.status === 429 || r.status === 504) {
+    const e = new Error('ocupado');
+    e.busy = true;
+    throw e;
+  }
+  if (!r.ok) throw new Error('Overpass respondeu ' + r.status);
+  const data = await r.json();
+  return data.elements || [];
+}
+
+// Dispara TODOS os espelhos em paralelo e usa o primeiro que responder.
 export async function runOverpass(query) {
-  let busy = false;
-  let lastErr;
-  for (const url of OVERPASS_MIRRORS) {
-    try {
-      const r = await fetchWithTimeout(
-        url,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'data=' + encodeURIComponent(query),
-        },
-        20000
-      );
-      if (r.status === 429 || r.status === 504) {
-        busy = true;
-        lastErr = new Error('Servidor Overpass ocupado (limite de uso).');
-        continue; // tenta o próximo espelho
-      }
-      if (!r.ok) {
-        lastErr = new Error('Overpass respondeu ' + r.status);
-        continue;
-      }
-      const data = await r.json();
-      return data.elements || [];
-    } catch (e) {
-      // timeout (AbortError) ou erro de rede: tenta o próximo espelho
-      lastErr = e;
+  const body = 'data=' + encodeURIComponent(query);
+  try {
+    return await Promise.any(OVERPASS_MIRRORS.map((url) => attemptMirror(url, body)));
+  } catch (aggregate) {
+    const errors = (aggregate && aggregate.errors) || [];
+    if (errors.some((e) => e && e.busy)) {
+      throw new Error('Servidores da Overpass ocupados agora. Aguarde alguns segundos e tente de novo.');
     }
+    throw new Error('Não foi possível consultar a Overpass. Tente de novo.');
   }
-  if (busy) {
-    throw new Error('Servidores da Overpass ocupados agora. Aguarde alguns segundos e tente de novo.');
-  }
-  throw lastErr || new Error('Não foi possível consultar a Overpass.');
 }
 
 function tag(tags, keys) {

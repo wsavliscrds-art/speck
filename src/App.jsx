@@ -100,7 +100,10 @@ export default function App() {
       setSheetOpen(true);
       if (found.length === 0) setError('Nenhum comércio encontrado. Tente aumentar o raio ou trocar as categorias.');
     } catch (e) {
-      setError(e.message || 'Falha na busca.');
+      const msg = e && (e.name === 'AbortError' || /abort/i.test(e.message || ''))
+        ? 'A busca demorou demais e foi interrompida. Tente de novo, com um raio menor.'
+        : (e.message || 'Falha na busca.');
+      setError(msg);
     } finally {
       setBusy(false);
     }
