@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { CATEGORIES, matchesCategories } from './overpass.js';
+import { CATEGORIES } from './overpass.js';
 import { searchAll } from './sources.js';
 import { saveLead, savedExtIds } from './crm.js';
 import { TopNav } from './Nav.jsx';
@@ -50,12 +50,11 @@ export default function MapView({ tab, setTab, email, onLogout, isAdmin }) {
   }, []);
 
   const shown = useMemo(() => {
-    let out = leads.filter((l) => matchesCategories(l, cats));
-    if (onlyWithoutSite) out = out.filter((l) => !l.hasWebsite);
+    let out = onlyWithoutSite ? leads.filter((l) => !l.hasWebsite) : leads;
     if (phoneFilter === 'com') out = out.filter((l) => l.phone);
     else if (phoneFilter === 'sem') out = out.filter((l) => !l.phone);
     return out;
-  }, [leads, cats, onlyWithoutSite, phoneFilter]);
+  }, [leads, onlyWithoutSite, phoneFilter]);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -81,10 +80,10 @@ export default function MapView({ tab, setTab, email, onLogout, isAdmin }) {
     if (pts.length) mapRef.current.fitBounds(pts, { padding: [50, 50], maxZoom: 16 });
   }, [shown]);
 
-  const stats = useMemo(() => {
-    const inCats = leads.filter((l) => matchesCategories(l, cats));
-    return { total: inCats.length, semSite: inCats.filter((l) => !l.hasWebsite).length };
-  }, [leads, cats]);
+  const stats = useMemo(() => ({
+    total: leads.length,
+    semSite: leads.filter((l) => !l.hasWebsite).length,
+  }), [leads]);
 
   const runSearch = useCallback(async () => {
     if (!query.trim() || busy) return;

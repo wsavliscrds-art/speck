@@ -60,16 +60,10 @@ async function searchGeoapify({ lat, lon, radius }) {
     const lo = p.lon ?? (f.geometry && f.geometry.coordinates && f.geometry.coordinates[0]);
     const name = p.name || raw.name || '';
     if (!name || la == null) continue;
-    const catText = [
-      ...(p.categories || []),
-      raw.shop, raw.amenity, raw.tourism, raw.leisure, raw.craft, raw.office, raw.cuisine,
-    ].filter(Boolean).join(' ').toLowerCase();
     out.push({
       id: 'geoapify/' + (p.place_id || `${la},${lo}`),
       name,
-      category:
-        raw.shop || raw.amenity || raw.tourism || raw.leisure || (p.categories && p.categories[0]) || '',
-      catText,
+      category: (p.categories && p.categories[0]) || '',
       phone: (p.contact && p.contact.phone) || raw.phone || raw['contact:phone'] || '',
       website,
       hasWebsite: !!website,
@@ -102,12 +96,10 @@ async function searchFoursquare({ lat, lon, radius }) {
     const g = (p.geocodes && p.geocodes.main) || {};
     const website = p.website || '';
     if (!p.name || g.latitude == null) continue;
-    const catText = (p.categories || []).map((c) => c.name).join(' ').toLowerCase();
     out.push({
       id: 'fsq/' + p.fsq_id,
       name: p.name,
       category: (p.categories && p.categories[0] && p.categories[0].name) || '',
-      catText,
       phone: p.tel || '',
       website,
       hasWebsite: !!website,

@@ -175,16 +175,11 @@ export function toLead(el) {
   const website = tag(tags, ['website', 'contact:website', 'url']);
   const lat = el.lat ?? el.center?.lat;
   const lon = el.lon ?? el.center?.lon;
-  const catText = [
-    tags.shop, tags.amenity, tags.leisure, tags.tourism, tags.craft,
-    tags.office, tags.cuisine, tags.healthcare,
-  ].filter(Boolean).join(' ').toLowerCase();
   return {
     id: `${el.type}/${el.id}`,
     name: tags.name || '',
     category:
       tags.shop || tags.amenity || tags.leisure || tags.tourism || tags.craft || tags.office || '',
-    catText,
     phone: tag(tags, ['phone', 'contact:phone', 'contact:mobile']),
     website,
     hasWebsite: !!website,
@@ -193,33 +188,6 @@ export function toLead(el) {
     lon,
     osm: `https://www.openstreetmap.org/${el.type}/${el.id}`,
   };
-}
-
-// ---- Classificador de categorias (faz os chips filtrarem de qualquer fonte) --
-const CHIP_MATCH = {
-  restaurant: ['restaurant', 'fast_food', 'food_court', 'pizz', 'steak', 'burger', 'churrasc', 'lanchonete'],
-  cafe: ['cafe', 'café', 'coffee'],
-  bar: ['bar', 'pub', 'nightclub', 'boteco', 'biergarten'],
-  bakery: ['bakery', 'pastry', 'padaria', 'confeitaria'],
-  market: ['supermarket', 'convenience', 'grocery', 'greengrocer', 'marketplace', 'mercado', 'deli'],
-  shop: ['shop', 'commercial', 'store', 'mall', 'loja', 'department'],
-  beauty: ['hairdresser', 'beauty', 'cosmetic', 'nail', 'barber', 'health_and_beauty', 'spa', 'massage', 'tattoo'],
-  pharmacy: ['pharmacy', 'chemist', 'drugstore', 'farmac'],
-  fitness: ['fitness', 'gym', 'sport', 'academia'],
-  auto: ['car_repair', 'car_parts', 'tyres', 'motorcycle', 'autopart', 'oficina', 'car;'],
-  hotel: ['hotel', 'guest_house', 'hostel', 'motel', 'accommodation', 'pousada'],
-  services: ['craft', 'office'],
-};
-
-// true se o lead casa com ALGUMA das categorias escolhidas (vazio = todas).
-export function matchesCategories(lead, keys) {
-  if (!keys || keys.length === 0) return true;
-  const t = ((lead.catText || '') + ' ' + (lead.category || '')).toLowerCase();
-  for (const k of keys) {
-    const kws = CHIP_MATCH[k] || [k];
-    if (kws.some((w) => t.includes(w))) return true;
-  }
-  return false;
 }
 
 // Busca no OpenStreetMap (a partir de um centro já geocodificado).
