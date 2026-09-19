@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Prospecção de comércios sem site usando Apple Maps (MapKit JS)",
+  "description": "Prospecção de comércios sem site com OpenStreetMap (Overpass) + Leaflet",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "jsonwebtoken": "^9.0.2",
+    "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

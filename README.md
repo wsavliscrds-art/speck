@@ -1,40 +1,38 @@
-# Sem Site — prospecção de comércios sem site (Apple Maps)
+# Sem Site — prospecção de comércios sem site (OpenStreetMap)
 
-App web (com visual **Apple Design**) que mostra no mapa os **comércios de uma
-cidade ou bairro que ainda não têm site** — seus leads mais quentes para vender
-site, tráfego e presença digital. Usa dados reais do **Apple Maps (MapKit JS)**,
-em tempo real, sem importar planilhas.
+App web (visual **Apple Design**) que mostra no mapa os **comércios de uma cidade
+ou bairro que ainda não têm site** — seus leads mais quentes para vender site,
+tráfego e presença digital. Usa dados abertos e **gratuitos** do OpenStreetMap.
 
-Roda **100% no Vercel**: site estático (React/Vite) + **uma função serverless**
-que assina o token do Apple Maps. Sem Docker, sem servidor para manter.
+**Não precisa de nenhuma chave de API.** Roda **100% no Vercel** como site
+estático — sem servidor, sem token, sem custo.
 
-![stack](https://img.shields.io/badge/Apple%20Maps-MapKit%20JS-000?logo=apple)
+![stack](https://img.shields.io/badge/dados-OpenStreetMap-7EBC6F)
 ![deploy](https://img.shields.io/badge/deploy-Vercel-000?logo=vercel)
 
 ---
 
 ## Como funciona
 
-1. Você digita uma **cidade ou bairro** (ex.: "Moema, São Paulo").
-2. O app usa o **Apple Maps** para achar os comércios daquela região (por categoria:
-   restaurantes, lojas, padarias, etc.).
-3. Todo comércio cujo campo de **site vem vazio** é destacado com ★ verde no mapa e
-   marcado como **SEM SITE** na lista — é quem você quer abordar.
-4. Um toque abre **WhatsApp**, **liga**, ou abre no **Apple Maps**. Você marca cada
-   lead como *contatado* / *fechado* (fica salvo no seu navegador).
+1. Você digita uma **cidade ou bairro** (ex.: "Copacabana, Rio de Janeiro") e escolhe o **raio**.
+2. O app usa o **Nominatim** (OSM) para achar as coordenadas e a **Overpass API**
+   (OSM) para listar os comércios daquela área (lojas, restaurantes, padarias, etc.).
+3. Todo comércio **sem a tag `website`** no OpenStreetMap vira um ponto **verde** no
+   mapa e um cartão marcado **SEM SITE** na lista — é quem você quer abordar.
+4. Um toque abre **WhatsApp**, **liga**, ou abre no **OpenStreetMap**. Você marca
+   cada lead como *contatado* / *fechado* (salvo no seu navegador).
 
-> **Busca simples** traz os principais comércios da região. **Varredura** divide a
-> área em uma grade e busca célula por célula, achando muito mais comércios (ótimo
-> para cobrir uma cidade inteira).
+O mapa usa **Leaflet** com tiles do OpenStreetMap (também sem chave).
 
 ---
 
-## O que dá para cobrir (seja realista)
+## Tecnologia (tudo aberto e sem chave)
 
-- **Bairro / cidade:** ✅ funciona muito bem (use "Varredura" para cobertura ampla).
-- **Estado / país inteiro:** ⚠️ a API do Apple Maps devolve resultados por *região*
-  e tem limite por busca — não existe "baixar o país inteiro" de uma vez. Dá para
-  varrer cidade por cidade, mas não um dump nacional em um clique.
+| Peça | Serviço | Chave? |
+|---|---|---|
+| Coordenadas da cidade/bairro | [Nominatim](https://nominatim.org) (OSM) | ❌ não |
+| Lista de comércios | [Overpass API](https://overpass-api.de) (OSM) | ❌ não |
+| Mapa | [Leaflet](https://leafletjs.com) + tiles OSM | ❌ não |
 
 ---
 
@@ -42,75 +40,53 @@ que assina o token do Apple Maps. Sem Docker, sem servidor para manter.
 
 ```bash
 npm install
-
-# Opção A (recomendada) — igual à produção, com a função /api/token:
-npm i -g vercel
-vercel dev            # precisa das variáveis MAPKIT_* (veja abaixo)
-
-# Opção B — rápido, só o front: cole um token pronto no .env
-#   VITE_MAPKIT_TOKEN=...   (veja .env.example)
-npm run dev
+npm run dev      # abre em http://localhost:5173
 ```
 
----
-
-## Credenciais do Apple Maps (o que você precisa ter)
-
-Você precisa de uma conta **Apple Developer** (paga, US$99/ano) e de uma chave MapKit JS:
-
-1. Apple Developer → **Certificates, Identifiers & Profiles → Keys → (+)**
-2. Marque **MapKit JS**, crie e **baixe o arquivo `AuthKey_XXXXXXXXXX.p8`**
-   (só é possível baixar uma vez — guarde bem).
-3. Anote o **Key ID** (10 caracteres) e o seu **Team ID** (canto superior direito).
-
-Essas três coisas viram variáveis de ambiente (nunca vão para o código):
-
-| Variável | O que é |
-|---|---|
-| `MAPKIT_TEAM_ID` | Team ID (10 caracteres) |
-| `MAPKIT_KEY_ID` | Key ID da chave MapKit (10 caracteres) |
-| `MAPKIT_PRIVATE_KEY` | Conteúdo do arquivo `.p8` (com as linhas BEGIN/END) |
-| `MAPKIT_ORIGIN` | *(opcional)* trava o token ao seu domínio Vercel |
-
-A chave privada fica **só na função serverless** (`api/token.js`) — o navegador
-nunca a vê.
+Pronto — como não há chaves, funciona direto.
 
 ---
 
 ## Deploy no Vercel
 
 1. Faça login em [vercel.com](https://vercel.com) com o GitHub e **importe este repositório**.
-2. O Vercel detecta Vite sozinho (build `npm run build`, saída `dist`) e publica a
-   função `api/token.js` automaticamente.
-3. Em **Settings → Environment Variables**, adicione `MAPKIT_TEAM_ID`,
-   `MAPKIT_KEY_ID` e `MAPKIT_PRIVATE_KEY` (e, se quiser, `MAPKIT_ORIGIN` com a URL
-   do seu app).
-4. **Deploy**. Pronto: seu app fica em `https://seu-projeto.vercel.app`, funcionando
-   no computador e no celular.
+2. O Vercel detecta Vite sozinho (build `npm run build`, saída `dist`).
+3. **Deploy**. Fim — **nenhuma variável de ambiente é necessária**. O app fica em
+   `https://seu-projeto.vercel.app`, funcionando no computador e no celular.
 
-> **Colar a chave `.p8` no Vercel:** abra o arquivo em um editor de texto e cole o
-> conteúdo inteiro no valor de `MAPKIT_PRIVATE_KEY` (o Vercel aceita várias linhas).
+---
+
+## O que dá para cobrir (seja realista)
+
+- **Bairro / cidade:** ✅ funciona muito bem. Aumente o raio para pegar mais área.
+- **Estado / país inteiro:** ⚠️ a Overpass responde por *área* e o servidor público
+  tem **limite de uso por IP** (rate limit). Não existe "baixar o país todo" num
+  clique — mas dá para varrer bairro por bairro / cidade por cidade à vontade.
+- **Cobertura dos dados:** depende do OpenStreetMap. Em cidades grandes é ótima; em
+  regiões menores pode faltar comércio. Qualquer um pode cadastrar um comércio
+  faltante em [openstreetmap.org](https://www.openstreetmap.org) e ele aparece na
+  Overpass em algumas horas.
+
+> Se aparecer "servidor ocupado", é o limite temporário da Overpass — espere alguns
+> segundos e busque de novo. O app já tenta 3 espelhos diferentes automaticamente.
 
 ---
 
 ## Estrutura
 
 ```
-├── api/
-│   └── token.js        # função serverless (Vercel) que assina o token do Apple Maps
 ├── src/
-│   ├── App.jsx         # interface (Apple Design): mapa + painel de leads
-│   ├── mapkit.js       # integração MapKit JS: busca por região, varredura, geocode
-│   ├── styles.css      # visual Apple (materiais translúcidos, claro/escuro)
+│   ├── App.jsx        # interface (Apple Design): mapa Leaflet + painel de leads
+│   ├── overpass.js    # OpenStreetMap: geocode (Nominatim) + busca (Overpass) + "sem site"
+│   ├── styles.css     # visual Apple (materiais translúcidos, claro/escuro)
 │   └── main.jsx
 ├── index.html
-├── vercel.json
-└── .env.example
+└── vercel.json
 ```
 
 ---
 
 ## Aviso
 
-Use os dados com responsabilidade e respeite a LGPD/GDPR ao contatar as empresas,
-além dos Termos de Serviço do Apple Maps / MapKit JS.
+Use os dados com responsabilidade, respeite os limites de uso da Overpass/Nominatim
+e a LGPD/GDPR ao contatar as empresas. Dados © colaboradores do OpenStreetMap (ODbL).
