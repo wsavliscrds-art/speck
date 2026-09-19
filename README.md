@@ -26,13 +26,21 @@ O mapa usa **Leaflet** com tiles do OpenStreetMap (também sem chave).
 
 ---
 
-## Tecnologia (tudo aberto e sem chave)
+## Fontes de dados (3 em paralelo)
 
-| Peça | Serviço | Chave? |
+Para máxima confiabilidade, o app consulta **até 3 fontes gratuitas ao mesmo
+tempo** e junta os resultados (a que responder, entra):
+
+| Fonte | Chave? | Observação |
 |---|---|---|
-| Coordenadas da cidade/bairro | [Nominatim](https://nominatim.org) (OSM) | ❌ não |
-| Lista de comércios | [Overpass API](https://overpass-api.de) (OSM) | ❌ não |
-| Mapa | [Leaflet](https://leafletjs.com) + tiles OSM | ❌ não |
+| **OpenStreetMap / Overpass** | ❌ não | Sempre ligada. Servidores públicos às vezes ficam ocupados. |
+| **Geoapify** | 🔑 grátis (sem cartão) | Mesmos dados do OSM, servidor **estável**. Ativa com `VITE_GEOAPIFY_KEY`. |
+| **Foursquare** | 🔑 grátis | Base focada em comércios. Ativa com `FOURSQUARE_KEY` (fica no servidor). |
+
+Sem nenhuma chave, funciona só com o OpenStreetMap. Adicionando as chaves grátis
+(veja [`.env.example`](.env.example)), as 3 fontes rodam juntas e acaba o
+"servidor ocupado". Geocoding por [Nominatim](https://nominatim.org) +
+[Photon](https://photon.komoot.io); mapa por [Leaflet](https://leafletjs.com).
 
 ---
 

@@ -190,24 +190,16 @@ export function toLead(el) {
   };
 }
 
-// Busca completa: geocode + overpass + normalização (só comércios com nome).
-export async function search({ query, radius, categoryKeys }) {
-  const place = await geocode(query);
-  const q = buildQuery({ lat: place.lat, lon: place.lon, radius, categoryKeys });
+// Busca no OpenStreetMap (a partir de um centro já geocodificado).
+export async function searchOverpass({ lat, lon, radius, categoryKeys }) {
+  const q = buildQuery({ lat, lon, radius, categoryKeys });
   const elements = await runOverpass(q);
-
-  const seen = new Set();
   const leads = [];
   for (const el of elements) {
     const lead = toLead(el);
     if (!lead.name || lead.lat == null) continue;
-    if (seen.has(lead.id)) continue;
-    seen.add(lead.id);
+    lead.source = 'OpenStreetMap';
     leads.push(lead);
   }
-  leads.sort((a, b) => {
-    if (a.hasWebsite !== b.hasWebsite) return a.hasWebsite ? 1 : -1;
-    return a.name.localeCompare(b.name);
-  });
-  return { place, leads };
+  return leads;
 }

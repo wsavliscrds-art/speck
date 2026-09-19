@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { search, CATEGORIES } from './overpass.js';
+import { CATEGORIES } from './overpass.js';
+import { searchAll } from './sources.js';
 
 const STATUS_KEY = 'semsite:status';
 const loadStatus = () => {
@@ -32,6 +33,7 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [sources, setSources] = useState([]);
   const [status, setStatus] = useState(loadStatus);
   const [sheetOpen, setSheetOpen] = useState(true);
 
@@ -89,14 +91,16 @@ export default function App() {
     setBusy(true);
     setLeads([]);
     setSelected(null);
+    setSources([]);
     try {
-      const { place, leads: found } = await search({
+      const { place, leads: found, sources: srcs } = await searchAll({
         query: query.trim(),
         radius,
         categoryKeys: cats,
       });
       mapRef.current.setView([place.lat, place.lon], 14);
       setLeads(found);
+      setSources(srcs || []);
       setSheetOpen(true);
       if (found.length === 0) setError('Nenhum comércio encontrado. Tente aumentar o raio ou trocar as categorias.');
     } catch (e) {
@@ -188,6 +192,10 @@ export default function App() {
           </label>
         </div>
 
+        {sources.length > 0 && (
+          <div className="sources">Fontes ativas: {sources.join(' · ')}</div>
+        )}
+
         <div className="list">
           {shown.length === 0 && !busy && (
             <p className="empty">Busque uma cidade ou bairro para ver os comércios sem site no mapa.</p>
@@ -240,7 +248,7 @@ function LeadCard({ lead, active, status, onClick, onStatus }) {
       <div className="lead-actions">
         {wa && <a className="act act-wa" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
         {lead.phone && <a className="act" href={'tel:' + lead.phone.replace(/[^\d+]/g, '')}>Ligar</a>}
-        <a className="act" href={lead.osm} target="_blank" rel="noreferrer">OSM</a>
+        <a className="act" href={lead.osm} target="_blank" rel="noreferrer">Mapa</a>
         <button className={`act act-status s-${status || 'novo'}`} onClick={onStatus}>
           {status === 'contatado' ? 'Contatado' : status === 'fechado' ? 'Fechado' : 'Marcar'}
         </button>
