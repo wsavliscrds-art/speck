@@ -29,6 +29,7 @@ export default function App() {
   const [radius, setRadius] = useState(1500);
   const [cats, setCats] = useState(['restaurant', 'bakery', 'beauty', 'market']);
   const [onlyWithoutSite, setOnlyWithoutSite] = useState(true);
+  const [phoneFilter, setPhoneFilter] = useState('todos'); // todos | com | sem
   const [leads, setLeads] = useState([]);
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -50,10 +51,12 @@ export default function App() {
     return () => map.remove();
   }, []);
 
-  const shown = useMemo(
-    () => (onlyWithoutSite ? leads.filter((l) => !l.hasWebsite) : leads),
-    [leads, onlyWithoutSite]
-  );
+  const shown = useMemo(() => {
+    let out = onlyWithoutSite ? leads.filter((l) => !l.hasWebsite) : leads;
+    if (phoneFilter === 'com') out = out.filter((l) => l.phone);
+    else if (phoneFilter === 'sem') out = out.filter((l) => !l.phone);
+    return out;
+  }, [leads, onlyWithoutSite, phoneFilter]);
 
   // Redesenha os marcadores quando a lista filtrada muda
   useEffect(() => {
@@ -190,6 +193,19 @@ export default function App() {
             <input type="checkbox" checked={onlyWithoutSite} onChange={(e) => setOnlyWithoutSite(e.target.checked)} />
             <span>Só sem site</span>
           </label>
+        </div>
+
+        <div className="filter-row">
+          <span className="filter-label">Telefone</span>
+          <select
+            className="radius"
+            value={phoneFilter}
+            onChange={(e) => setPhoneFilter(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            <option value="com">Só com telefone</option>
+            <option value="sem">Só sem telefone</option>
+          </select>
         </div>
 
         {sources.length > 0 && (
