@@ -90,7 +90,7 @@ export function buildQuery({ lat, lon, radius, categoryKeys }) {
     .map((sel) => `  nwr(around:${radius},${lat},${lon})${sel};`)
     .join('\n');
 
-  return `[out:json][timeout:25];\n(\n${body}\n);\nout center 250;`;
+  return `[out:json][timeout:25];\n(\n${body}\n);\nout center 800;`;
 }
 
 // Consulta direta a um espelho (no navegador). Devolve {elements}|{busy}|{}.

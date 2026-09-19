@@ -37,7 +37,7 @@ function mapLink(lat, lon) {
 // Geoapify recusar a busca inteira, então usamos só as seguras e abrangentes:
 //   commercial = lojas | catering = restaurantes/cafés/bares |
 //   accommodation = hotéis | healthcare = farmácias/saúde
-const GEOAPIFY_CATS = ['commercial', 'catering', 'accommodation', 'healthcare'];
+const GEOAPIFY_CATS = ['commercial', 'catering', 'accommodation', 'healthcare', 'service', 'office'];
 
 async function searchGeoapify({ lat, lon, radius }) {
   if (!GEOAPIFY_KEY) return [];
@@ -46,7 +46,7 @@ async function searchGeoapify({ lat, lon, radius }) {
   const url =
     `https://api.geoapify.com/v2/places?categories=${cats.join(',')}` +
     `&filter=circle:${lon},${lat},${radius}&bias=proximity:${lon},${lat}` +
-    `&limit=100&apiKey=${GEOAPIFY_KEY}`;
+    `&limit=500&apiKey=${GEOAPIFY_KEY}`;
 
   const r = await fetchTimeout(url, { headers: { Accept: 'application/json' } }, 16000);
   if (!r.ok) throw new Error('Geoapify ' + r.status);
