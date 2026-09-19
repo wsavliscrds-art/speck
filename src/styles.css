@@ -54,12 +54,19 @@ body {
   box-shadow: var(--shadow);
 }
 
-/* Topbar */
-.topbar {
+/* Contêiner do topo: empilha busca + categorias sem sobreposição */
+.topchrome {
   position: absolute;
   top: max(12px, env(safe-area-inset-top));
   left: 12px; right: 12px;
   z-index: 10;
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: none; /* deixa o mapa "passar" nos espaços */
+}
+.topchrome > * { pointer-events: auto; }
+
+/* Topbar */
+.topbar {
   display: flex; align-items: center; gap: 14px;
   padding: 10px 12px;
   border-radius: var(--radius);
@@ -107,9 +114,6 @@ body {
 
 /* Chips de categoria */
 .chips {
-  position: absolute;
-  top: calc(max(12px, env(safe-area-inset-top)) + 74px);
-  left: 12px; right: 12px; z-index: 9;
   display: flex; gap: 8px; overflow-x: auto;
   padding: 2px; scrollbar-width: none;
 }
@@ -129,7 +133,7 @@ body {
 /* Avisos flutuantes */
 .progress, .toast-error, .loading {
   position: absolute; left: 50%; transform: translateX(-50%);
-  top: calc(max(12px, env(safe-area-inset-top)) + 118px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 172px);
   z-index: 11; padding: 10px 16px; border-radius: 999px;
   font-size: 13px; font-weight: 500; max-width: 90%;
 }
@@ -200,7 +204,7 @@ body {
 /* Desktop: painel lateral direito */
 @media (min-width: 768px) {
   .sheet {
-    top: calc(max(12px, env(safe-area-inset-top)) + 160px);
+    top: calc(max(12px, env(safe-area-inset-top)) + 178px);
     right: 12px; bottom: 12px; width: 380px;
     background: var(--material-strong);
     -webkit-backdrop-filter: blur(28px) saturate(180%);

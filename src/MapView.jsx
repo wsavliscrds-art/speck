@@ -136,34 +136,36 @@ export default function MapView({ tab, setTab, email, onLogout, isAdmin }) {
     <div className="app">
       <div ref={mapEl} className="map" />
 
-      <header className="chrome topbar">
-        <TopNav tab={tab} setTab={setTab} email={email} onLogout={onLogout} savedCount={saved.size} isAdmin={isAdmin} />
-        <form className="searchform" onSubmit={(e) => { e.preventDefault(); runSearch(); }}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cidade, bairro ou região…"
-            aria-label="Local"
-          />
-          <select className="radius" value={radius} onChange={(e) => setRadius(Number(e.target.value))} aria-label="Raio">
-            {RADIUS_OPTS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
-          </select>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? '…' : 'Buscar'}
-          </button>
-        </form>
-      </header>
+      <div className="topchrome">
+        <header className="chrome topbar">
+          <TopNav tab={tab} setTab={setTab} email={email} onLogout={onLogout} savedCount={saved.size} isAdmin={isAdmin} />
+          <form className="searchform" onSubmit={(e) => { e.preventDefault(); runSearch(); }}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="🔎 Cidade, bairro ou região…"
+              aria-label="Local"
+            />
+            <select className="radius" value={radius} onChange={(e) => setRadius(Number(e.target.value))} aria-label="Raio">
+              {RADIUS_OPTS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+            </select>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? '…' : 'Buscar'}
+            </button>
+          </form>
+        </header>
 
-      <div className="chips">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.key}
-            className={`chip ${cats.includes(c.key) ? 'chip-on' : ''}`}
-            onClick={() => toggleCat(c.key)}
-          >
-            {c.label}
-          </button>
-        ))}
+        <div className="chips">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              className={`chip ${cats.includes(c.key) ? 'chip-on' : ''}`}
+              onClick={() => toggleCat(c.key)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {busy && <div className="chrome loading">Buscando no OpenStreetMap… (alguns segundos)</div>}
