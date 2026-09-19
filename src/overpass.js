@@ -3,11 +3,11 @@
 //  - Overpass: lista os comércios (shop/amenity/...) num raio.
 // Comércio SEM a tag de site = lead quente.
 
-// Espelhos da Overpass (se um estiver ocupado/bloqueado, tenta o próximo).
+// Espelhos GLOBAIS com CORS para uso direto no navegador (IP residencial do
+// usuário, que costuma ser menos limitado que o do servidor).
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter',
 ];
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
@@ -93,60 +93,66 @@ export function buildQuery({ lat, lon, radius, categoryKeys }) {
   return `[out:json][timeout:25];\n(\n${body}\n);\nout center 250;`;
 }
 
-// Tenta um espelho direto do navegador; devolve {ok, elements, busy}.
-async function attemptMirror(url, body) {
+// Consulta direta a um espelho (no navegador). Devolve {elements}|{busy}|{}.
+async function directAttempt(url, body) {
   try {
     const r = await fetchWithTimeout(
       url,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-      },
-      18000
+      { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body },
+      16000
     );
-    if (r.status === 429 || r.status === 503 || r.status === 504) return { ok: false, busy: true };
-    if (!r.ok) return { ok: false };
-    const data = await r.json();
-    return { ok: true, elements: data.elements || [] };
+    if (r.status === 429 || r.status === 503 || r.status === 504) return { busy: true };
+    if (!r.ok) return {};
+    const d = await r.json();
+    return { elements: d.elements || [] };
   } catch {
-    return { ok: false };
+    return {}; // CORS/rede/timeout: apenas ignora este espelho
   }
 }
 
-// 1) tenta o proxy same-origin (/api/overpass) — sem CORS, usa vários espelhos
-//    no servidor. 2) se não houver proxy (dev local) ou ele falhar, cai nos
-//    espelhos diretos do navegador.
-export async function runOverpass(query) {
-  // --- 1) proxy serverless (produção no Vercel) ---
+// Consulta via proxy serverless same-origin. Devolve {elements}|{busy}|{}.
+async function proxyAttempt(query) {
   try {
     const r = await fetchWithTimeout(
       '/api/overpass',
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) },
-      30000
+      25000
     );
-    if (r.ok) {
-      const d = await r.json();
-      return d.elements || [];
-    }
-    if (r.status === 429) {
-      throw new Error('Servidores da Overpass ocupados agora. Aguarde alguns segundos e tente de novo.');
-    }
-    // 404 (sem proxy em dev) ou 502: segue para o fallback direto
-  } catch (e) {
-    if (e && e.message && e.message.includes('ocupados')) throw e; // repassa o "ocupado"
-    // demais erros (proxy ausente/timeout): tenta o fallback direto
+    if (r.status === 429) return { busy: true };
+    if (!r.ok) return {}; // 404 em dev local, 502, etc.
+    const d = await r.json();
+    return { elements: d.elements || [] };
+  } catch {
+    return {};
   }
+}
 
-  // --- 2) fallback: espelhos direto do navegador, em paralelo ---
+// Roda o proxy e os espelhos diretos AO MESMO TEMPO e usa o primeiro que
+// trouxer dados. O proxy cobre casos de CORS/servidor; os diretos usam o IP do
+// usuário (residencial), normalmente menos limitado que o do datacenter.
+export async function runOverpass(query) {
   const body = 'data=' + encodeURIComponent(query);
-  const results = await Promise.all(OVERPASS_MIRRORS.map((url) => attemptMirror(url, body)));
-  const ok = results.find((r) => r.ok);
-  if (ok) return ok.elements;
-  if (results.some((r) => r.busy)) {
-    throw new Error('Servidores da Overpass ocupados agora. Aguarde alguns segundos e tente de novo.');
+  const attempts = [
+    proxyAttempt(query),
+    ...OVERPASS_MIRRORS.map((url) => directAttempt(url, body)),
+  ];
+  // resolve só quando um retorno tiver dados; caso contrário rejeita com o resultado
+  const successOnly = (p) =>
+    p.then((r) => {
+      if (r.elements && r.elements.length > 0) return r.elements;
+      throw r;
+    });
+
+  try {
+    return await Promise.any(attempts.map(successOnly));
+  } catch (agg) {
+    const errs = (agg && agg.errors) || [];
+    if (errs.some((e) => e && e.elements)) return []; // algum respondeu OK-vazio: vazio real
+    if (errs.some((e) => e && e.busy)) {
+      throw new Error('Servidores da Overpass ocupados agora. Aguarde ~10s e toque em Buscar de novo.');
+    }
+    throw new Error('Não foi possível consultar a Overpass agora. Tente de novo em instantes.');
   }
-  throw new Error('Não foi possível consultar a Overpass agora. Tente de novo em instantes.');
 }
 
 function tag(tags, keys) {
