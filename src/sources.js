@@ -33,30 +33,15 @@ function mapLink(lat, lon) {
 }
 
 // ---- Geoapify (mesmos dados do OSM, servidor estável) -----------------------
-const GEOAPIFY_CATS = {
-  restaurant: ['catering.restaurant', 'catering.fast_food'],
-  cafe: ['catering.cafe'],
-  bar: ['catering.bar', 'catering.pub'],
-  bakery: ['commercial'],
-  market: ['commercial.supermarket', 'commercial.convenience'],
-  shop: ['commercial'],
-  beauty: ['commercial.health_and_beauty'],
-  pharmacy: ['healthcare.pharmacy'],
-  fitness: ['sport.fitness'],
-  auto: ['commercial'],
-  hotel: ['accommodation.hotel'],
-};
-const GEOAPIFY_DEFAULT = [
-  'catering.restaurant', 'catering.cafe', 'catering.bar',
-  'commercial', 'accommodation.hotel', 'healthcare.pharmacy',
-];
+// Categorias AMPLAS e garantidas (top-level válidas). Categoria inválida faz a
+// Geoapify recusar a busca inteira, então usamos só as seguras e abrangentes:
+//   commercial = lojas | catering = restaurantes/cafés/bares |
+//   accommodation = hotéis | healthcare = farmácias/saúde
+const GEOAPIFY_CATS = ['commercial', 'catering', 'accommodation', 'healthcare'];
 
-async function searchGeoapify({ lat, lon, radius, categoryKeys }) {
+async function searchGeoapify({ lat, lon, radius }) {
   if (!GEOAPIFY_KEY) return [];
-  let cats = [];
-  for (const k of categoryKeys || []) if (GEOAPIFY_CATS[k]) cats.push(...GEOAPIFY_CATS[k]);
-  if (cats.length === 0) cats = GEOAPIFY_DEFAULT;
-  cats = [...new Set(cats)];
+  const cats = GEOAPIFY_CATS;
 
   const url =
     `https://api.geoapify.com/v2/places?categories=${cats.join(',')}` +
