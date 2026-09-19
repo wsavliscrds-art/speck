@@ -16,6 +16,10 @@ A fonte de dados é o scraper open‑source
 [`gosom/google-maps-scraper`](https://github.com/gosom/google-maps-scraper)
 (mesmo motor do kit `google-maps-scraper-kit`), rodando localmente via Docker.
 
+> **Colocar no ar (Vercel + host do backend):** veja [`DEPLOY.md`](DEPLOY.md).
+> Resumo: o **painel** vai para o Vercel e o **backend + scraper** vão para um
+> host com Docker (VPS ou Railway) — o Vercel sozinho não roda o scraper.
+
 ---
 
 ## Como a prospecção funciona

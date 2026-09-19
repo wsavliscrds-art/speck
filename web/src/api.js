@@ -1,6 +1,9 @@
 // Cliente da API + helpers compartilhados pelo painel web.
 
-const BASE = ''; // usa o proxy do Vite (/api -> backend)
+// Em produção (Vercel) defina VITE_API_BASE com a URL do seu backend
+// (ex.: https://leadmapa-api.up.railway.app). Em desenvolvimento fica vazio
+// e usa o proxy do Vite (/api -> localhost:4000).
+const BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 
 async function req(path, options) {
   const res = await fetch(BASE + path, {
@@ -37,7 +40,7 @@ export const api = {
     if (filters.status && filters.status !== 'todos') p.set('status', filters.status);
     if (filters.q) p.set('q', filters.q);
     if (filters.minRating) p.set('minRating', filters.minRating);
-    return '/api/leads/export.csv?' + p.toString();
+    return BASE + '/api/leads/export.csv?' + p.toString();
   },
 };
 
