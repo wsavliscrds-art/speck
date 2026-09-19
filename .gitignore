@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+.expo/
+.expo-shared/
+
+# Dados e ambiente
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+backend/data/
+backend-data/
+scraper-data/
+
+# Logs / SO
+*.log
+npm-debug.log*
+.DS_Store

@@ -1,0 +1,27 @@
+services:
+  # Scraper do Google Maps (motor de dados reais). Expõe uma API REST em :8080.
+  scraper:
+    image: gosom/google-maps-scraper:latest
+    command: ["-data-folder", "/gmapsdata", "-web", "-addr", "0.0.0.0:8080"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./scraper-data:/gmapsdata
+    restart: unless-stopped
+
+  # Backend / API do LeadMapa. Fala com o scraper e guarda os leads.
+  backend:
+    build: ./backend
+    environment:
+      - PORT=4000
+      - SCRAPER_BASE_URL=http://scraper:8080
+      - DB_PATH=/data/leads.db
+      - DEFAULT_LANG=pt
+      - CORS_ORIGIN=*
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend-data:/data
+    depends_on:
+      - scraper
+    restart: unless-stopped
