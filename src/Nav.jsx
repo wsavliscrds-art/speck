@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Navegação entre "Mapa" e "Funil" + sair. Usada nas duas telas.
-export function TopNav({ tab, setTab, email, onLogout, savedCount }) {
+export function TopNav({ tab, setTab, email, onLogout, savedCount, isAdmin }) {
   return (
     <div className="nav">
       <div className="seg">
@@ -10,7 +10,10 @@ export function TopNav({ tab, setTab, email, onLogout, savedCount }) {
           Funil{savedCount ? ` (${savedCount})` : ''}
         </button>
       </div>
-      <button className="nav-out" onClick={onLogout} title={email || 'Sair'}>Sair</button>
+      <div className="nav-right">
+        {isAdmin && <span className="owner-badge" title={email}>👑 Dono</span>}
+        <button className="nav-out" onClick={onLogout} title={email || 'Sair'}>Sair</button>
+      </div>
     </div>
   );
 }

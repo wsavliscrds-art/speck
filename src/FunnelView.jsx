@@ -7,7 +7,7 @@ const brl = (v) =>
     ? ''
     : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-export default function FunnelView({ tab, setTab, email, onLogout }) {
+export default function FunnelView({ tab, setTab, email, onLogout, isAdmin }) {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,7 +54,7 @@ export default function FunnelView({ tab, setTab, email, onLogout }) {
   return (
     <div className="funnel">
       <header className="chrome funnel-top">
-        <TopNav tab={tab} setTab={setTab} email={email} onLogout={onLogout} savedCount={leads.length} />
+        <TopNav tab={tab} setTab={setTab} email={email} onLogout={onLogout} savedCount={leads.length} isAdmin={isAdmin} />
       </header>
 
       <div className="funnel-body">

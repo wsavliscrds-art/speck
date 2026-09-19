@@ -18,6 +18,12 @@ async function uid() {
   return data?.user?.id || null;
 }
 
+// Papel do usuário logado ('admin' = dono, 'user' = comum).
+export async function getMyRole() {
+  const { data } = await supabase.from('profiles').select('role').maybeSingle();
+  return data?.role || 'user';
+}
+
 // Salva (ou atualiza) um lead vindo do mapa no funil do usuário.
 export async function saveLead(lead) {
   const user_id = await uid();

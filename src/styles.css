@@ -317,3 +317,8 @@ body {
 .fcard-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .act-del { background: #fef2f2; color: var(--hot); border: none; padding: 7px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .toast-error.inline { position: static; transform: none; margin: 0 0 12px; }
+
+/* selo de dono/admin na navegação */
+.nav-right { display: flex; align-items: center; gap: 8px; }
+.owner-badge { font-size: 12px; font-weight: 700; color: #b7791f; background: #fffbeb; border: 1px solid #fde68a; padding: 5px 9px; border-radius: 999px; white-space: nowrap; }
+@media (prefers-color-scheme: dark) { .owner-badge { background: rgba(180,120,20,0.18); border-color: rgba(253,230,138,0.3); color: #f4d47c; } }

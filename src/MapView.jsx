@@ -13,7 +13,7 @@ const RADIUS_OPTS = [
   { v: 5000, label: '5 km' },
 ];
 
-export default function MapView({ tab, setTab, email, onLogout }) {
+export default function MapView({ tab, setTab, email, onLogout, isAdmin }) {
   const mapEl = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
@@ -137,7 +137,7 @@ export default function MapView({ tab, setTab, email, onLogout }) {
       <div ref={mapEl} className="map" />
 
       <header className="chrome topbar">
-        <TopNav tab={tab} setTab={setTab} email={email} onLogout={onLogout} savedCount={saved.size} />
+        <TopNav tab={tab} setTab={setTab} email={email} onLogout={onLogout} savedCount={saved.size} isAdmin={isAdmin} />
         <form className="searchform" onSubmit={(e) => { e.preventDefault(); runSearch(); }}>
           <input
             value={query}
