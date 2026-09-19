@@ -12,6 +12,17 @@ const OVERPASS_MIRRORS = [
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
+// fetch com timeout (evita ficar preso num espelho lento)
+async function fetchWithTimeout(url, options, ms) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 // Categorias -> seletores Overpass. (label em pt, selectors do OSM)
 export const CATEGORIES = [
   { key: 'restaurant', label: 'Restaurantes', selectors: ['["amenity"="restaurant"]', '["amenity"="fast_food"]'] },
@@ -31,7 +42,7 @@ export const CATEGORIES = [
 // Geocodifica um texto (cidade, bairro) -> { lat, lon, label }.
 export async function geocode(query) {
   const url = `${NOMINATIM}?format=json&limit=1&addressdetails=0&q=${encodeURIComponent(query)}`;
-  const r = await fetch(url, { headers: { Accept: 'application/json' } });
+  const r = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 12000);
   if (!r.ok) throw new Error('Falha no geocoding (Nominatim).');
   const data = await r.json();
   if (!data || data.length === 0) throw new Error('Local não encontrado.');
@@ -60,20 +71,26 @@ export function buildQuery({ lat, lon, radius, categoryKeys }) {
     .map((sel) => `  nwr(around:${radius},${lat},${lon})${sel};`)
     .join('\n');
 
-  return `[out:json][timeout:30];\n(\n${body}\n);\nout center 400;`;
+  return `[out:json][timeout:25];\n(\n${body}\n);\nout center 250;`;
 }
 
-// Executa a query tentando os espelhos em sequência.
+// Executa a query tentando os espelhos em sequência (com timeout por espelho).
 export async function runOverpass(query) {
+  let busy = false;
   let lastErr;
   for (const url of OVERPASS_MIRRORS) {
     try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-      });
+      const r = await fetchWithTimeout(
+        url,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(query),
+        },
+        20000
+      );
       if (r.status === 429 || r.status === 504) {
+        busy = true;
         lastErr = new Error('Servidor Overpass ocupado (limite de uso).');
         continue; // tenta o próximo espelho
       }
@@ -84,8 +101,12 @@ export async function runOverpass(query) {
       const data = await r.json();
       return data.elements || [];
     } catch (e) {
+      // timeout (AbortError) ou erro de rede: tenta o próximo espelho
       lastErr = e;
     }
+  }
+  if (busy) {
+    throw new Error('Servidores da Overpass ocupados agora. Aguarde alguns segundos e tente de novo.');
   }
   throw lastErr || new Error('Não foi possível consultar a Overpass.');
 }

@@ -26,7 +26,7 @@ export default function App() {
 
   const [query, setQuery] = useState('');
   const [radius, setRadius] = useState(1500);
-  const [cats, setCats] = useState(['restaurant', 'shop', 'bakery', 'beauty']);
+  const [cats, setCats] = useState(['restaurant', 'bakery', 'beauty', 'market']);
   const [onlyWithoutSite, setOnlyWithoutSite] = useState(true);
   const [leads, setLeads] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -169,7 +169,7 @@ export default function App() {
         ))}
       </div>
 
-      {busy && <div className="chrome loading">Buscando comércios no OpenStreetMap…</div>}
+      {busy && <div className="chrome loading">Buscando no OpenStreetMap… (alguns segundos)</div>}
       {error && <div className="chrome toast-error">{error}</div>}
 
       <section className={`chrome sheet ${sheetOpen ? 'open' : 'closed'}`}>
