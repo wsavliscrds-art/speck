@@ -1,111 +1,116 @@
-# LeadMapa — Prospecção de empresas sem site
+# Sem Site — prospecção de comércios sem site (Apple Maps)
 
-Sistema de prospecção que encontra **empresas locais que ainda não têm site**
-(seus leads mais quentes) usando dados reais do Google Maps, em tempo real,
-sem precisar importar planilhas manualmente.
+App web (com visual **Apple Design**) que mostra no mapa os **comércios de uma
+cidade ou bairro que ainda não têm site** — seus leads mais quentes para vender
+site, tráfego e presença digital. Usa dados reais do **Apple Maps (MapKit JS)**,
+em tempo real, sem importar planilhas.
 
-O sistema é dividido em três partes que compartilham a **mesma API**:
+Roda **100% no Vercel**: site estático (React/Vite) + **uma função serverless**
+que assina o token do Apple Maps. Sem Docker, sem servidor para manter.
 
-| Parte | Pasta | O que é |
-|-------|-------|---------|
-| **Backend / API** | [`backend/`](backend/) | Orquestra o scraper do Google Maps, filtra empresas **sem site**, remove duplicados, guarda os leads e o status de contato, exporta CSV. |
-| **Web (dashboard)** | [`web/`](web/) | Painel responsivo (roda no computador e no navegador do celular) para buscar, filtrar e gerenciar os leads. |
-| **App mobile nativo** | [`mobile/`](mobile/) | App React Native (Expo) instalável no Android/iOS, consumindo a mesma API. |
-
-A fonte de dados é o scraper open‑source
-[`gosom/google-maps-scraper`](https://github.com/gosom/google-maps-scraper)
-(mesmo motor do kit `google-maps-scraper-kit`), rodando localmente via Docker.
-
-> **Colocar no ar (Vercel + host do backend):** veja [`DEPLOY.md`](DEPLOY.md).
-> Resumo: o **painel** vai para o Vercel e o **backend + scraper** vão para um
-> host com Docker (VPS ou Railway) — o Vercel sozinho não roda o scraper.
+![stack](https://img.shields.io/badge/Apple%20Maps-MapKit%20JS-000?logo=apple)
+![deploy](https://img.shields.io/badge/deploy-Vercel-000?logo=vercel)
 
 ---
 
-## Como a prospecção funciona
+## Como funciona
 
-1. Você busca algo como **"restaurantes em Campinas"** ou **"salão de beleza São Paulo"**.
-2. O backend dispara o scraper do Google Maps e coleta os resultados reais
-   (nome, telefone, endereço, categoria, nota, e **se tem site ou não**).
-3. O sistema **marca como lead quente toda empresa cujo campo `site` está vazio** —
-   são exatamente as empresas que você pode abordar para vender site/marketing.
-4. Você acompanha cada lead (a contatar → contatado → fechado), abre o WhatsApp
-   com um toque e exporta tudo em CSV quando quiser.
+1. Você digita uma **cidade ou bairro** (ex.: "Moema, São Paulo").
+2. O app usa o **Apple Maps** para achar os comércios daquela região (por categoria:
+   restaurantes, lojas, padarias, etc.).
+3. Todo comércio cujo campo de **site vem vazio** é destacado com ★ verde no mapa e
+   marcado como **SEM SITE** na lista — é quem você quer abordar.
+4. Um toque abre **WhatsApp**, **liga**, ou abre no **Apple Maps**. Você marca cada
+   lead como *contatado* / *fechado* (fica salvo no seu navegador).
+
+> **Busca simples** traz os principais comércios da região. **Varredura** divide a
+> área em uma grade e busca célula por célula, achando muito mais comércios (ótimo
+> para cobrir uma cidade inteira).
 
 ---
 
-## Início rápido (3 passos)
+## O que dá para cobrir (seja realista)
 
-Pré‑requisitos: **Docker** + **Node.js 18+**. Para o app mobile: **Expo** (`npx expo`).
+- **Bairro / cidade:** ✅ funciona muito bem (use "Varredura" para cobertura ampla).
+- **Estado / país inteiro:** ⚠️ a API do Apple Maps devolve resultados por *região*
+  e tem limite por busca — não existe "baixar o país inteiro" de uma vez. Dá para
+  varrer cidade por cidade, mas não um dump nacional em um clique.
 
-### 1. Suba o scraper + backend com Docker
+---
 
-```bash
-cp .env.example .env         # ajuste se quiser
-docker compose up -d         # sobe o scraper (porta 8080) e o backend (porta 4000)
-```
-
-O backend fica em `http://localhost:4000` e o painel de saúde em
-`http://localhost:4000/api/health`.
-
-> Prefere rodar o backend fora do Docker? Veja [`backend/README.md`](backend/README.md).
-
-### 2. Abra o painel web
+## Rodar localmente
 
 ```bash
-cd web
 npm install
-npm run dev        # abre em http://localhost:5173
-```
 
-O painel já vem responsivo — abra no navegador do celular apontando para o IP
-da sua máquina (ex.: `http://192.168.0.10:5173`).
+# Opção A (recomendada) — igual à produção, com a função /api/token:
+npm i -g vercel
+vercel dev            # precisa das variáveis MAPKIT_* (veja abaixo)
 
-### 3. Rode o app mobile nativo (opcional)
-
-```bash
-cd mobile
-npm install
-npm start          # abra no app "Expo Go" lendo o QR code
-```
-
-Configure o endereço da API em `mobile/src/config.js` (o IP da máquina onde o
-backend está rodando).
-
----
-
-## Arquitetura
-
-```
-       ┌──────────────┐        ┌───────────────────────────┐
-       │   Web app    │        │   App mobile (Expo/RN)    │
-       │  (dashboard) │        │                           │
-       └──────┬───────┘        └─────────────┬─────────────┘
-              │  HTTP/JSON                    │  HTTP/JSON
-              └───────────────┬───────────────┘
-                              ▼
-                   ┌────────────────────┐
-                   │   Backend / API    │  Node.js + Express
-                   │  - dispara buscas  │  + SQLite (leads.db)
-                   │  - filtra sem site │
-                   │  - guarda leads    │
-                   └─────────┬──────────┘
-                             │  REST (/api/v1/jobs)
-                             ▼
-                   ┌────────────────────┐
-                   │ google-maps-scraper│  (Docker, porta 8080)
-                   │   dados reais do   │
-                   │    Google Maps     │
-                   └────────────────────┘
+# Opção B — rápido, só o front: cole um token pronto no .env
+#   VITE_MAPKIT_TOKEN=...   (veja .env.example)
+npm run dev
 ```
 
 ---
 
-## Aviso legal
+## Credenciais do Apple Maps (o que você precisa ter)
 
-O scraper do Google Maps é uma ferramenta de terceiros e coletar dados do Google
-Maps **pode violar os Termos de Uso do Google**. Use por sua conta e risco,
-respeite os limites de taxa (rate limit) já embutidos e as leis de proteção de
-dados (LGPD/GDPR) ao contatar as empresas. Para um sistema de produção mais
-robusto e sem risco jurídico, o backend foi desenhado para também aceitar a
-**Google Places API** oficial no futuro (veja `backend/src/sources/`).
+Você precisa de uma conta **Apple Developer** (paga, US$99/ano) e de uma chave MapKit JS:
+
+1. Apple Developer → **Certificates, Identifiers & Profiles → Keys → (+)**
+2. Marque **MapKit JS**, crie e **baixe o arquivo `AuthKey_XXXXXXXXXX.p8`**
+   (só é possível baixar uma vez — guarde bem).
+3. Anote o **Key ID** (10 caracteres) e o seu **Team ID** (canto superior direito).
+
+Essas três coisas viram variáveis de ambiente (nunca vão para o código):
+
+| Variável | O que é |
+|---|---|
+| `MAPKIT_TEAM_ID` | Team ID (10 caracteres) |
+| `MAPKIT_KEY_ID` | Key ID da chave MapKit (10 caracteres) |
+| `MAPKIT_PRIVATE_KEY` | Conteúdo do arquivo `.p8` (com as linhas BEGIN/END) |
+| `MAPKIT_ORIGIN` | *(opcional)* trava o token ao seu domínio Vercel |
+
+A chave privada fica **só na função serverless** (`api/token.js`) — o navegador
+nunca a vê.
+
+---
+
+## Deploy no Vercel
+
+1. Faça login em [vercel.com](https://vercel.com) com o GitHub e **importe este repositório**.
+2. O Vercel detecta Vite sozinho (build `npm run build`, saída `dist`) e publica a
+   função `api/token.js` automaticamente.
+3. Em **Settings → Environment Variables**, adicione `MAPKIT_TEAM_ID`,
+   `MAPKIT_KEY_ID` e `MAPKIT_PRIVATE_KEY` (e, se quiser, `MAPKIT_ORIGIN` com a URL
+   do seu app).
+4. **Deploy**. Pronto: seu app fica em `https://seu-projeto.vercel.app`, funcionando
+   no computador e no celular.
+
+> **Colar a chave `.p8` no Vercel:** abra o arquivo em um editor de texto e cole o
+> conteúdo inteiro no valor de `MAPKIT_PRIVATE_KEY` (o Vercel aceita várias linhas).
+
+---
+
+## Estrutura
+
+```
+├── api/
+│   └── token.js        # função serverless (Vercel) que assina o token do Apple Maps
+├── src/
+│   ├── App.jsx         # interface (Apple Design): mapa + painel de leads
+│   ├── mapkit.js       # integração MapKit JS: busca por região, varredura, geocode
+│   ├── styles.css      # visual Apple (materiais translúcidos, claro/escuro)
+│   └── main.jsx
+├── index.html
+├── vercel.json
+└── .env.example
+```
+
+---
+
+## Aviso
+
+Use os dados com responsabilidade e respeite a LGPD/GDPR ao contatar as empresas,
+além dos Termos de Serviço do Apple Maps / MapKit JS.
