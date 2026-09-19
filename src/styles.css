@@ -67,7 +67,7 @@ body {
 
 /* Topbar */
 .topbar {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
   padding: 10px 12px;
   border-radius: var(--radius);
 }
