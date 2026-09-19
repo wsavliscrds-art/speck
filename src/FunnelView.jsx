@@ -12,6 +12,7 @@ export default function FunnelView({ tab, setTab, email, onLogout, isAdmin }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stageFilter, setStageFilter] = useState('todos');
+  const [q, setQ] = useState('');
 
   useEffect(() => {
     listLeads()
@@ -20,10 +21,18 @@ export default function FunnelView({ tab, setTab, email, onLogout, isAdmin }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const shown = useMemo(
-    () => (stageFilter === 'todos' ? leads : leads.filter((l) => l.stage === stageFilter)),
-    [leads, stageFilter]
-  );
+  const shown = useMemo(() => {
+    let out = stageFilter === 'todos' ? leads : leads.filter((l) => l.stage === stageFilter);
+    const term = q.trim().toLowerCase();
+    if (term) {
+      out = out.filter((l) =>
+        [l.name, l.phone, l.category, l.address, l.service, l.notes]
+          .filter(Boolean)
+          .some((f) => String(f).toLowerCase().includes(term))
+      );
+    }
+    return out;
+  }, [leads, stageFilter, q]);
 
   const resumo = useMemo(() => {
     const fechados = leads.filter((l) => l.stage === 'fechado');
@@ -63,6 +72,14 @@ export default function FunnelView({ tab, setTab, email, onLogout, isAdmin }) {
           <Stat value={resumo.fechados} label="fechados" ok />
           <Stat value={brl(resumo.receita) || 'R$ 0'} label="receita fechada" ok wide />
         </div>
+
+        <input
+          className="funnel-search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="🔎 Buscar lead por nome, telefone, serviço…"
+          aria-label="Buscar no funil"
+        />
 
         <div className="stage-chips">
           <button className={stageFilter === 'todos' ? 'on' : ''} onClick={() => setStageFilter('todos')}>
