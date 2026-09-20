@@ -26,26 +26,33 @@ export default async function handler(req, res) {
     `https://places-api.foursquare.com/places/search?ll=${lat},${lon}` +
     `&radius=${radius}&limit=50&fields=fsq_place_id,name,tel,website,location,latitude,longitude,categories`;
 
-  // tenta vários formatos de autenticação (chave nova "Service Key" com Bearer,
-  // ou chave crua) para cobrir os tipos possíveis.
-  const authVariants = [
+  const withTimeout = async (headers) => {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 5000);
+    try {
+      return await fetch(url, { headers: { ...headers, Accept: 'application/json' }, signal: c.signal });
+    } finally {
+      clearTimeout(t);
+    }
+  };
+
+  // 2 tentativas rápidas: chave nova (Bearer) e chave crua, ambas com versão.
+  const variants = [
     { Authorization: `Bearer ${key}`, 'X-Places-Api-Version': '2025-06-17' },
     { Authorization: key, 'X-Places-Api-Version': '2025-06-17' },
-    { Authorization: `Bearer ${key}` },
-    { Authorization: key },
   ];
 
   let last = { status: 0, body: '' };
-  for (const auth of authVariants) {
+  for (const headers of variants) {
     try {
-      const r = await fetch(url, { headers: { ...auth, Accept: 'application/json' } });
+      const r = await withTimeout(headers);
       if (r.ok) {
         const data = await r.json();
         res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
         return res.status(200).json({ results: data.results || [] });
       }
       last = { status: r.status, body: (await r.text().catch(() => '')) };
-      if (r.status !== 401 && r.status !== 403) break; // erro não-auth: não adianta insistir
+      if (r.status !== 401 && r.status !== 403) break;
     } catch (e) {
       last = { status: -1, body: String(e.message || e) };
     }
