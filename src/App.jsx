@@ -30,6 +30,7 @@ export default function App() {
   // vazio = todos os tipos (traz o máximo). Clicar num chip filtra por tipo.
   const [cats, setCats] = useState([]);
   const [onlyWithoutSite, setOnlyWithoutSite] = useState(true);
+  const [onlyConfirmed, setOnlyConfirmed] = useState(false);
   const [phoneFilter, setPhoneFilter] = useState('todos');
   const [leads, setLeads] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -54,10 +55,11 @@ export default function App() {
   const shown = useMemo(() => {
     let out = leads.filter((l) => matchesCategories(l, cats));
     if (onlyWithoutSite) out = out.filter((l) => !l.hasWebsite);
+    if (onlyConfirmed) out = out.filter((l) => (l.confirmations || 1) >= 2);
     if (phoneFilter === 'com') out = out.filter((l) => l.phone);
     else if (phoneFilter === 'sem') out = out.filter((l) => !l.phone);
     return out;
-  }, [leads, cats, onlyWithoutSite, phoneFilter]);
+  }, [leads, cats, onlyWithoutSite, onlyConfirmed, phoneFilter]);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -196,6 +198,13 @@ export default function App() {
         </div>
 
         <div className="filter-row">
+          <label className="switch">
+            <input type="checkbox" checked={onlyConfirmed} onChange={(e) => setOnlyConfirmed(e.target.checked)} />
+            <span>Só confirmados (2+ fontes)</span>
+          </label>
+        </div>
+
+        <div className="filter-row">
           <span className="filter-label">Telefone</span>
           <select className="radius" value={phoneFilter} onChange={(e) => setPhoneFilter(e.target.value)}>
             <option value="todos">Todos</option>
@@ -253,6 +262,11 @@ function LeadCard({ lead, active, status, onClick, onStatus }) {
         <div className="lead-top">
           <h3>{lead.name}</h3>
           {!lead.hasWebsite && <span className="tag">SEM SITE</span>}
+          {lead.confirmations >= 2 && (
+            <span className="tag tag-ok" title={`Confirmado por ${(lead.confirmedBy || []).join(', ')}`}>
+              ✓ {lead.confirmations} fontes
+            </span>
+          )}
         </div>
         <div className="lead-sub">{[lead.category, lead.address].filter(Boolean).join(' · ')}</div>
         {lead.phone && <div className="lead-phone">{lead.phone}</div>}

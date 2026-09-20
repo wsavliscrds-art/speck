@@ -139,27 +139,37 @@ export async function searchAll({ query, radius, categoryKeys }) {
     safe('Foursquare', searchFoursquare({ lat, lon, radius })),
   ]);
 
-  // junta e deduplica (mantém o registro que tiver mais informação)
+  // junta e deduplica; registra QUANTAS fontes confirmam cada local (validação)
   const byKey = new Map();
   for (const res of results) {
     for (const lead of res.leads) {
       const key = dedupeKey(lead);
       const prev = byKey.get(key);
       if (!prev) {
+        lead._srcs = new Set([lead.source]);
         byKey.set(key, lead);
       } else {
+        prev._srcs.add(lead.source);
         // completa campos vazios com o de outra fonte
         prev.phone = prev.phone || lead.phone;
         prev.website = prev.website || lead.website;
         prev.hasWebsite = prev.hasWebsite || lead.hasWebsite;
         prev.address = prev.address || lead.address;
+        prev.catText = prev.catText || lead.catText;
       }
     }
   }
 
   const leads = [...byKey.values()]
     .filter(isBusiness) // remove praia, parque, mirante, ponto de ônibus, etc.
+    .map((l) => {
+      l.confirmedBy = [...l._srcs];
+      l.confirmations = l._srcs.size;
+      delete l._srcs;
+      return l;
+    })
     .sort((a, b) => {
+      if (a.confirmations !== b.confirmations) return b.confirmations - a.confirmations;
       if (a.hasWebsite !== b.hasWebsite) return a.hasWebsite ? 1 : -1;
       return a.name.localeCompare(b.name);
     });

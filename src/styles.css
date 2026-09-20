@@ -186,6 +186,8 @@ body {
 .lead-top { display: flex; align-items: center; gap: 8px; }
 .lead-top h3 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
 .tag { background: var(--green); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; }
+.tag-ok { background: var(--blue); }
+.lead-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .lead-sub { font-size: 13px; color: var(--text-2); margin-top: 3px; }
 .lead-phone { font-size: 14px; margin-top: 4px; }
 
