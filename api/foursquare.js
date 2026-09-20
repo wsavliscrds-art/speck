@@ -26,36 +26,27 @@ export default async function handler(req, res) {
     `https://places-api.foursquare.com/places/search?ll=${lat},${lon}` +
     `&radius=${radius}&limit=50&fields=fsq_place_id,name,tel,website,location,latitude,longitude,categories`;
 
-  const withTimeout = async (headers) => {
-    const c = new AbortController();
-    const t = setTimeout(() => c.abort(), 5000);
-    try {
-      return await fetch(url, { headers: { ...headers, Accept: 'application/json' }, signal: c.signal });
-    } finally {
-      clearTimeout(t);
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), 6000);
+  try {
+    const r = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'X-Places-Api-Version': '2025-06-17',
+        Accept: 'application/json',
+      },
+      signal: c.signal,
+    });
+    if (r.ok) {
+      const data = await r.json();
+      res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+      return res.status(200).json({ results: data.results || [] });
     }
-  };
-
-  // 2 tentativas rápidas: chave nova (Bearer) e chave crua, ambas com versão.
-  const variants = [
-    { Authorization: `Bearer ${key}`, 'X-Places-Api-Version': '2025-06-17' },
-    { Authorization: key, 'X-Places-Api-Version': '2025-06-17' },
-  ];
-
-  let last = { status: 0, body: '' };
-  for (const headers of variants) {
-    try {
-      const r = await withTimeout(headers);
-      if (r.ok) {
-        const data = await r.json();
-        res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
-        return res.status(200).json({ results: data.results || [] });
-      }
-      last = { status: r.status, body: (await r.text().catch(() => '')) };
-      if (r.status !== 401 && r.status !== 403) break;
-    } catch (e) {
-      last = { status: -1, body: String(e.message || e) };
-    }
+    const body = await r.text().catch(() => '');
+    return res.status(502).json({ error: 'Foursquare ' + r.status, detail: body.slice(0, 160), results: [] });
+  } catch (e) {
+    return res.status(502).json({ error: String(e.message || e), results: [] });
+  } finally {
+    clearTimeout(t);
   }
-  return res.status(502).json({ error: 'Foursquare ' + last.status, detail: (last.body || '').slice(0, 200), results: [] });
 }
