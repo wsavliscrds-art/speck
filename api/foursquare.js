@@ -20,15 +20,24 @@ export default async function handler(req, res) {
   }
   if (!isFinite(lat) || !isFinite(lon)) return res.status(400).json({ error: 'lat/lon inválidos' });
 
+  // API NOVA do Foursquare (a v3 foi desativada -> 410). Novo host + Bearer +
+  // cabeçalho de versão. Chave = Service Key do painel novo do Foursquare.
   const url =
-    `https://api.foursquare.com/v3/places/search?ll=${lat},${lon}` +
-    `&radius=${radius}&limit=50&fields=fsq_id,name,tel,website,location,geocodes,categories`;
+    `https://places-api.foursquare.com/places/search?ll=${lat},${lon}` +
+    `&radius=${radius}&limit=50&fields=fsq_place_id,name,tel,website,location,latitude,longitude,categories`;
 
   try {
     const r = await fetch(url, {
-      headers: { Authorization: key, Accept: 'application/json' },
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'X-Places-Api-Version': '2025-06-17',
+        Accept: 'application/json',
+      },
     });
-    if (!r.ok) return res.status(502).json({ error: 'Foursquare ' + r.status, results: [] });
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      return res.status(502).json({ error: 'Foursquare ' + r.status, detail: body.slice(0, 200), results: [] });
+    }
     const data = await r.json();
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
     return res.status(200).json({ results: data.results || [] });

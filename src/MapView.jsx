@@ -21,7 +21,8 @@ export default function MapView({ tab, setTab, email, onLogout, isAdmin }) {
 
   const [query, setQuery] = useState('');
   const [radius, setRadius] = useState(1500);
-  const [cats, setCats] = useState(['restaurant', 'bakery', 'beauty', 'market']);
+  // vazio = todos os tipos (traz o máximo). Clicar num chip filtra por tipo.
+  const [cats, setCats] = useState([]);
   const [onlyWithoutSite, setOnlyWithoutSite] = useState(true);
   const [phoneFilter, setPhoneFilter] = useState('todos');
   const [leads, setLeads] = useState([]);

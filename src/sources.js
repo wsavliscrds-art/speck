@@ -100,11 +100,13 @@ async function searchFoursquare({ lat, lon, radius }) {
   const out = [];
   for (const p of data.results || []) {
     const g = (p.geocodes && p.geocodes.main) || {};
+    const la = p.latitude ?? g.latitude;
+    const lo = p.longitude ?? g.longitude;
     const website = p.website || '';
-    if (!p.name || g.latitude == null) continue;
-    const catText = (p.categories || []).map((c) => c.name).join(' ').toLowerCase();
+    if (!p.name || la == null) continue;
+    const catText = (p.categories || []).map((c) => c.name || c.short_name || '').join(' ').toLowerCase();
     out.push({
-      id: 'fsq/' + p.fsq_id,
+      id: 'fsq/' + (p.fsq_place_id || p.fsq_id),
       name: p.name,
       category: (p.categories && p.categories[0] && p.categories[0].name) || '',
       catText,
@@ -112,9 +114,9 @@ async function searchFoursquare({ lat, lon, radius }) {
       website,
       hasWebsite: !!website,
       address: (p.location && p.location.formatted_address) || '',
-      lat: g.latitude,
-      lon: g.longitude,
-      osm: mapLink(g.latitude, g.longitude),
+      lat: la,
+      lon: lo,
+      osm: mapLink(la, lo),
       source: 'Foursquare',
     });
   }
