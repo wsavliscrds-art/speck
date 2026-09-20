@@ -175,11 +175,16 @@ export function toLead(el) {
   const website = tag(tags, ['website', 'contact:website', 'url']);
   const lat = el.lat ?? el.center?.lat;
   const lon = el.lon ?? el.center?.lon;
+  const catText = [
+    tags.shop, tags.amenity, tags.leisure, tags.tourism, tags.craft,
+    tags.office, tags.cuisine, tags.healthcare,
+  ].filter(Boolean).join(' ').toLowerCase();
   return {
     id: `${el.type}/${el.id}`,
     name: tags.name || '',
     category:
       tags.shop || tags.amenity || tags.leisure || tags.tourism || tags.craft || tags.office || '',
+    catText,
     phone: tag(tags, ['phone', 'contact:phone', 'contact:mobile']),
     website,
     hasWebsite: !!website,
@@ -188,6 +193,41 @@ export function toLead(el) {
     lon,
     osm: `https://www.openstreetmap.org/${el.type}/${el.id}`,
   };
+}
+
+// ---- Classificador de tipos (filtro por categoria, seguro) ------------------
+const CHIP_MATCH = {
+  restaurant: ['restaurant', 'fast_food', 'food_court', 'pizz', 'steak', 'burger', 'churrasc', 'lanchonete'],
+  cafe: ['cafe', 'café', 'coffee'],
+  bar: [' bar', 'pub', 'nightclub', 'boteco', 'biergarten', 'catering.bar'],
+  bakery: ['bakery', 'pastry', 'padaria', 'confeitaria'],
+  market: ['supermarket', 'convenience', 'grocery', 'greengrocer', 'marketplace', 'mercado', 'deli'],
+  shop: ['shop', 'store', 'mall', 'loja', 'department'],
+  beauty: ['hairdresser', 'beauty', 'cosmetic', 'nail', 'barber', 'health_and_beauty', 'spa', 'massage', 'tattoo'],
+  pharmacy: ['pharmacy', 'chemist', 'drugstore', 'farmac'],
+  fitness: ['fitness', 'gym', 'sport', 'academia'],
+  auto: ['car_repair', 'car_parts', 'tyres', 'motorcycle', 'autopart', 'oficina'],
+  hotel: ['hotel', 'guest_house', 'hostel', 'motel', 'accommodation', 'pousada'],
+  services: ['craft', 'office'],
+};
+
+// Tipos "conhecidos" a que um lead pertence (vazio = ambíguo).
+function typesOf(lead) {
+  const t = (' ' + (lead.catText || '') + ' ' + (lead.category || '') + ' ').toLowerCase();
+  const types = [];
+  for (const [k, kws] of Object.entries(CHIP_MATCH)) {
+    if (kws.some((w) => t.includes(w))) types.push(k);
+  }
+  return types;
+}
+
+// Regra SEGURA: esconde só o que é claramente de OUTRO tipo. Local sem tipo
+// identificável (ambíguo) NUNCA é escondido.
+export function matchesCategories(lead, keys) {
+  if (!keys || keys.length === 0) return true;
+  const types = typesOf(lead);
+  if (types.length === 0) return true; // ambíguo -> mantém
+  return types.some((t) => keys.includes(t));
 }
 
 // Busca no OpenStreetMap (a partir de um centro já geocodificado).
