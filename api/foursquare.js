@@ -26,22 +26,29 @@ export default async function handler(req, res) {
     `https://places-api.foursquare.com/places/search?ll=${lat},${lon}` +
     `&radius=${radius}&limit=50&fields=fsq_place_id,name,tel,website,location,latitude,longitude,categories`;
 
-  try {
-    const r = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${key}`,
-        'X-Places-Api-Version': '2025-06-17',
-        Accept: 'application/json',
-      },
-    });
-    if (!r.ok) {
-      const body = await r.text().catch(() => '');
-      return res.status(502).json({ error: 'Foursquare ' + r.status, detail: body.slice(0, 200), results: [] });
+  // tenta vários formatos de autenticação (chave nova "Service Key" com Bearer,
+  // ou chave crua) para cobrir os tipos possíveis.
+  const authVariants = [
+    { Authorization: `Bearer ${key}`, 'X-Places-Api-Version': '2025-06-17' },
+    { Authorization: key, 'X-Places-Api-Version': '2025-06-17' },
+    { Authorization: `Bearer ${key}` },
+    { Authorization: key },
+  ];
+
+  let last = { status: 0, body: '' };
+  for (const auth of authVariants) {
+    try {
+      const r = await fetch(url, { headers: { ...auth, Accept: 'application/json' } });
+      if (r.ok) {
+        const data = await r.json();
+        res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+        return res.status(200).json({ results: data.results || [] });
+      }
+      last = { status: r.status, body: (await r.text().catch(() => '')) };
+      if (r.status !== 401 && r.status !== 403) break; // erro não-auth: não adianta insistir
+    } catch (e) {
+      last = { status: -1, body: String(e.message || e) };
     }
-    const data = await r.json();
-    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
-    return res.status(200).json({ results: data.results || [] });
-  } catch (e) {
-    return res.status(502).json({ error: String(e.message || e), results: [] });
   }
+  return res.status(502).json({ error: 'Foursquare ' + last.status, detail: (last.body || '').slice(0, 200), results: [] });
 }
