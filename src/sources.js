@@ -3,7 +3,7 @@
 //  2) Geoapify                  — chave grátis em VITE_GEOAPIFY_KEY (navegador)
 //  3) Foursquare                — chave grátis no servidor (/api/foursquare)
 // A que trouxer dados entra; os resultados são unificados e deduplicados.
-import { geocode, searchOverpass } from './overpass.js';
+import { geocode, searchOverpass, isBusiness } from './overpass.js';
 
 const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY || '';
 
@@ -37,7 +37,7 @@ function mapLink(lat, lon) {
 // Geoapify recusar a busca inteira, então usamos só as seguras e abrangentes:
 //   commercial = lojas | catering = restaurantes/cafés/bares |
 //   accommodation = hotéis | healthcare = farmácias/saúde
-const GEOAPIFY_CATS = ['commercial', 'catering', 'accommodation', 'healthcare', 'service', 'office'];
+const GEOAPIFY_CATS = ['commercial', 'catering', 'accommodation', 'healthcare', 'service', 'office', 'sport'];
 
 async function searchGeoapify({ lat, lon, radius }) {
   if (!GEOAPIFY_KEY) return [];
@@ -157,10 +157,12 @@ export async function searchAll({ query, radius, categoryKeys }) {
     }
   }
 
-  const leads = [...byKey.values()].sort((a, b) => {
-    if (a.hasWebsite !== b.hasWebsite) return a.hasWebsite ? 1 : -1;
-    return a.name.localeCompare(b.name);
-  });
+  const leads = [...byKey.values()]
+    .filter(isBusiness) // remove praia, parque, mirante, ponto de ônibus, etc.
+    .sort((a, b) => {
+      if (a.hasWebsite !== b.hasWebsite) return a.hasWebsite ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
 
   const sources = results.filter((r) => r.ok && r.leads.length > 0).map((r) => r.source);
   const anyOk = results.some((r) => r.ok);

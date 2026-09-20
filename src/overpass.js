@@ -77,8 +77,16 @@ export async function geocode(query) {
 export function buildQuery({ lat, lon, radius, categoryKeys }) {
   let selectors;
   if (!categoryKeys || categoryKeys.length === 0) {
-    // padrão: qualquer loja + serviços comuns
-    selectors = ['["shop"]', '["amenity"~"^(restaurant|cafe|bar|pub|fast_food|pharmacy|bank|fuel)$"]'];
+    // padrão: qualquer loja + serviços comuns + academias/esporte + ofícios
+    selectors = [
+      '["shop"]',
+      '["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|pharmacy|bank|fuel|clinic|dentist|veterinary)$"]',
+      '["leisure"~"^(fitness_centre|sports_centre|sports_hall|dance)$"]',
+      '["sport"]',
+      '["office"]',
+      '["craft"]',
+      '["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]',
+    ];
   } else {
     selectors = [];
     for (const key of categoryKeys) {
@@ -228,6 +236,23 @@ export function matchesCategories(lead, keys) {
   const types = typesOf(lead);
   if (types.length === 0) return true; // ambíguo -> mantém
   return types.some((t) => keys.includes(t));
+}
+
+// Termos que NÃO são comércio (praia, parque, mirante, ponto de ônibus, etc.).
+const NON_BUSINESS = [
+  'beach', 'bathing', 'nature_reserve', 'national_park', 'scenic', 'viewpoint',
+  'lookout', 'monument', 'memorial', 'artwork', 'fountain', 'playground',
+  'dog_park', 'park', 'parking', 'bus_stop', 'bus_station', 'tram_stop',
+  'subway', 'train_station', 'platform', 'atm', 'toilet', 'marina', 'pier',
+  'harbor', 'harbour', 'trail', 'bridge', 'plaza', 'square', 'cemetery',
+  'grave_yard', 'place_of_worship', 'fire_station', 'police', 'townhall',
+  'courthouse', 'waste', 'recycling', 'bench', 'fuel_station',
+];
+
+// true se o lead parece um COMÉRCIO/estabelecimento (descarta praia, parque…).
+export function isBusiness(lead) {
+  const t = (' ' + (lead.catText || '') + ' ' + (lead.category || '') + ' ').toLowerCase();
+  return !NON_BUSINESS.some((w) => t.includes(w));
 }
 
 // Busca no OpenStreetMap (a partir de um centro já geocodificado).
